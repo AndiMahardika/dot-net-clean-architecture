@@ -8,4 +8,9 @@ public class Todo
     public bool IsCompleted { get; set; } = false;
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+    // Relasi many-to-one dengan User
+    // Satu todo hanya milik satu user
+    public int UserId { get; set; }
+    public User User { get; set; } = null!;
 }
