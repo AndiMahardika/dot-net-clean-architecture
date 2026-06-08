@@ -9,9 +9,10 @@ POST {{TodoApp.Api_HostAddress}}/todos
 Content-Type: application/json
 
 {
-    "title": "Belajar Makan",
-    "description": "Makan Nasi Padang",
-    "isCompleted": false
+    "title": "Belajar Relation Table",
+    "description": "Belajar Mandiri",
+    "isCompleted": false,
+    "userId": 1
 }
 
 ### Update Todo
@@ -30,3 +31,36 @@ Accept: application/json
 
 ### Delete Todo
 DELETE {{TodoApp.Api_HostAddress}}/todos/4
+
+### Get All Users
+GET {{TodoApp.Api_HostAddress}}/users
+Accept: application/json
+
+### Create a new User
+POST {{TodoApp.Api_HostAddress}}/users
+Content-Type: application/json
+
+{
+    "username": "JaneDoe",
+    "email": "janeDoe@gmail.com",
+    "password": "Password123"
+}
+
+### Get User by ID
+GET {{TodoApp.Api_HostAddress}}/users/1
+Accept: application/json
+
+### Get User by Username
+GET {{TodoApp.Api_HostAddress}}/users/username/JohnDoe
+Accept: application/json
+
+### Update User
+PUT {{TodoApp.Api_HostAddress}}/users/1
+Content-Type: application/json
+
+{
+    "username": "JohnDoeUpdated"
+}
+
+### Delete User
+DELETE {{TodoApp.Api_HostAddress}}/users/2

@@ -47,7 +47,8 @@ app.MapPost("/todos", async (
     }
     var description = request.Description.Trim();
     var isCompleted = request.IsCompleted;
-    var todo = await service.CreateAsync(title, description, isCompleted);
+    var userId = request.UserId;
+    var todo = await service.CreateAsync(title, description, isCompleted, userId);
 
     return Results.Created($"/todos/{todo.Id}", todo);
 });
@@ -70,13 +71,14 @@ app.MapPut("/todos/{id}", async (
     var title = request.Title.Trim();
     var description = request.Description.Trim();
     var isCompleted = request.IsCompleted;
+    var userId = request.UserId;
 
     if (string.IsNullOrEmpty(title))
     {
         return Results.BadRequest("Title is required");
     }
 
-    await service.UpdateAsync(id, title, description, isCompleted);
+    await service.UpdateAsync(id, title, description, isCompleted, userId);
 
     return Results.Ok();
 });
@@ -156,7 +158,7 @@ app.MapDelete("/users/{id}", async (UserService service, int id) =>
 
 app.Run();
 
-public record CreateTodoRequest(string Title, string Description, bool IsCompleted);
-public record UpdateTodoRequest(string Title, string Description, bool IsCompleted);
+public record CreateTodoRequest(string Title, string Description, bool IsCompleted, int UserId);
+public record UpdateTodoRequest(string Title, string Description, bool IsCompleted, int UserId);
 public record CreateUserRequest(string Username, string Email, string Password);
 public record UpdateUserRequest(string Username);

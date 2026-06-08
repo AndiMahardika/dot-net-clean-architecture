@@ -11,6 +11,6 @@ public class Todo
 
     // Relasi many-to-one dengan User
     // Satu todo hanya milik satu user
-    public int UserId { get; set; }
-    public User User { get; set; } = null!;
+    public int? UserId { get; set; }
+    public User? User { get; set; } = null!;
 }

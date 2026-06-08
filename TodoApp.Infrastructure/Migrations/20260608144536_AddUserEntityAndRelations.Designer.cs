@@ -12,8 +12,8 @@ using TodoApp.Infrastructure.Persistence;
 namespace TodoApp.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    [Migration("20260608143245_AddColumnUser")]
-    partial class AddColumnUser
+    [Migration("20260608144536_AddUserEntityAndRelations")]
+    partial class AddUserEntityAndRelations
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -52,7 +52,7 @@ namespace TodoApp.Infrastructure.Migrations
                     b.Property<DateTime>("UpdatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<int>("UserId")
+                    b.Property<int?>("UserId")
                         .HasColumnType("integer");
 
                     b.HasKey("Id");
@@ -94,9 +94,7 @@ namespace TodoApp.Infrastructure.Migrations
                 {
                     b.HasOne("TodoApp.Domain.Entities.User", "User")
                         .WithMany("Todos")
-                        .HasForeignKey("UserId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("UserId");
 
                     b.Navigation("User");
                 });

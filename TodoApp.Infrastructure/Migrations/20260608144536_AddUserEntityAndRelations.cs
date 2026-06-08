@@ -6,7 +6,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace TodoApp.Infrastructure.Migrations
 {
     /// <inheritdoc />
-    public partial class AddColumnUser : Migration
+    public partial class AddUserEntityAndRelations : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -15,8 +15,7 @@ namespace TodoApp.Infrastructure.Migrations
                 name: "UserId",
                 table: "Todos",
                 type: "integer",
-                nullable: false,
-                defaultValue: 0);
+                nullable: true);
 
             migrationBuilder.CreateTable(
                 name: "Users",
@@ -43,8 +42,7 @@ namespace TodoApp.Infrastructure.Migrations
                 table: "Todos",
                 column: "UserId",
                 principalTable: "Users",
-                principalColumn: "Id",
-                onDelete: ReferentialAction.Cascade);
+                principalColumn: "Id");
         }
 
         /// <inheritdoc />

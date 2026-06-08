@@ -37,14 +37,16 @@ public class TodoService
     public async Task<Todo> CreateAsync(
         string title,
         string description = "",
-        bool isCompleted = false)
+        bool isCompleted = false,
+        int userId = 0)
     {
         // Membuat object Todo baru
         var todo = new Todo
         {
             Title = title,
             Description = description,
-            IsCompleted = isCompleted
+            IsCompleted = isCompleted,
+            UserId = userId
         };
 
         // Menambahkan ke DbContext melalui Repository
@@ -61,7 +63,8 @@ public class TodoService
         int id,
         string title,
         string description = "",
-        bool isCompleted = false)
+        bool isCompleted = false,
+        int userId = 0)
     {
         // Mencari data Todo
         var todo = await _unitOfWork.Todos.GetByIdAsync(id);
@@ -76,6 +79,7 @@ public class TodoService
         todo.Title = title;
         todo.Description = description;
         todo.IsCompleted = isCompleted;
+        todo.UserId = userId;
 
         // Menandai entity sebagai Updated
         await _unitOfWork.Todos.UpdateAsync(todo);
