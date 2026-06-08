@@ -1,0 +1,32 @@
+@TodoApp.Api_HostAddress = http://localhost:5272
+
+### Get All Todos
+GET {{TodoApp.Api_HostAddress}}/todos
+Accept: application/json
+
+### Create a new Todo
+POST {{TodoApp.Api_HostAddress}}/todos
+Content-Type: application/json
+
+{
+    "title": "Belajar Makan",
+    "description": "Makan Nasi Padang",
+    "isCompleted": false
+}
+
+### Update Todo
+PUT {{TodoApp.Api_HostAddress}}/todos/1
+Content-Type: application/json
+
+{
+    "title": "Belajar Makan",
+    "description": "Makan Nasi Padang",
+    "isCompleted": true
+}
+
+### Get Todo by ID
+GET {{TodoApp.Api_HostAddress}}/todos/1
+Accept: application/json
+
+### Delete Todo
+DELETE {{TodoApp.Api_HostAddress}}/todos/4
