@@ -3,6 +3,9 @@ using TodoApp.Application.Interfaces;
 using TodoApp.Application.Services;
 using TodoApp.Infrastructure.Persistence;
 using TodoApp.Infrastructure.Repositories;
+using FluentValidation;
+using TodoApp.Application.Validators;
+using TodoApp.Application.DTOs;
 
 // Membuat instance WebApplicationBuilder.
 // Digunakan untuk konfigurasi service, middleware, dan aplikasi ASP.NET Core.
@@ -31,6 +34,9 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<TodoService>();
 builder.Services.AddScoped<UserService>();
 
+// Mendaftarkan seluruh validator dari assembly TodoApp.Application
+builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoRequestValidator>();
+
 // Membuat aplikasi berdasarkan seluruh konfigurasi yang telah didaftarkan.
 var app = builder.Build();
 
@@ -47,17 +53,22 @@ app.MapGet("/todos", async (TodoService service) =>
 
 app.MapPost("/todos", async (
     TodoService service,
+    IValidator<CreateTodoRequest> validator,
     CreateTodoRequest request) =>
 {
-    var title = request.Title.Trim();
-    if (string.IsNullOrEmpty(title))
+    var validationResult = await validator.ValidateAsync(request);
+
+    if (!validationResult.IsValid)
     {
-        return Results.BadRequest("Title is required");
+        return Results.BadRequest(validationResult.Errors);
     }
-    var description = request.Description.Trim();
-    var isCompleted = request.IsCompleted;
-    var userId = request.UserId;
-    var todo = await service.CreateAsync(title, description, isCompleted, userId);
+
+    var todo = await service.CreateAsync(
+        request.Title.Trim(),
+        request.Description.Trim(),
+        request.IsCompleted,
+        request.UserId
+    );
 
     return Results.Created($"/todos/{todo.Id}", todo);
 });
@@ -75,19 +86,23 @@ app.MapGet("/todos/{id}", async (TodoService service, int id) =>
 app.MapPut("/todos/{id}", async (
     TodoService service,
     int id,
+    IValidator<UpdateTodoRequest> validator,
     UpdateTodoRequest request) =>
 {
-    var title = request.Title.Trim();
-    var description = request.Description.Trim();
-    var isCompleted = request.IsCompleted;
-    var userId = request.UserId;
+    var validationResult = await validator.ValidateAsync(request);
 
-    if (string.IsNullOrEmpty(title))
+    if (!validationResult.IsValid)
     {
-        return Results.BadRequest("Title is required");
+        return Results.BadRequest(validationResult.Errors);
     }
 
-    await service.UpdateAsync(id, title, description, isCompleted, userId);
+    await service.UpdateAsync(
+        id,
+        request.Title.Trim(),
+        request.Description.Trim(),
+        request.IsCompleted,
+        request.UserId
+    );
 
     return Results.Ok();
 });
@@ -106,18 +121,17 @@ app.MapGet("/users", async (UserService service) =>
 
 app.MapPost("/users", async (
     UserService service,
+    IValidator<CreateUserRequest> validator,
     CreateUserRequest request) =>
 {
-    var username = request.Username.Trim();
-    var email = request.Email.Trim();
-    var password = request.Password.Trim();
+    var validationResult = await validator.ValidateAsync(request);
 
-    if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(email) || string.IsNullOrEmpty(password))
+    if (!validationResult.IsValid)
     {
-        return Results.BadRequest("Username, email, and password are required");
+        return Results.BadRequest(validationResult.Errors);
     }
 
-    var user = await service.CreateAsync(username, email, password);
+    var user = await service.CreateAsync(request.Username.Trim(), request.Email.Trim(), request.Password.Trim());
 
     return Results.Created($"/users/{user?.Id}", user);
 });
@@ -145,16 +159,17 @@ app.MapGet("/users/username/{username}", async (UserService service, string user
 app.MapPut("/users/{id}", async (
     UserService service,
     int id,
+    IValidator<UpdateUserRequest> validator,
     UpdateUserRequest request) =>
 {
-    var username = request.Username.Trim();
+    var validationResult = await validator.ValidateAsync(request);
 
-    if (string.IsNullOrEmpty(username))
+    if (!validationResult.IsValid)
     {
-        return Results.BadRequest("Username is required");
+        return Results.BadRequest(validationResult.Errors);
     }
 
-    await service.UpdateAsync(id, username);
+    await service.UpdateAsync(id, request.Username.Trim());
 
     return Results.Ok();
 });
@@ -166,8 +181,3 @@ app.MapDelete("/users/{id}", async (UserService service, int id) =>
 });
 
 app.Run();
-
-public record CreateTodoRequest(string Title, string Description, bool IsCompleted, int UserId);
-public record UpdateTodoRequest(string Title, string Description, bool IsCompleted, int UserId);
-public record CreateUserRequest(string Username, string Email, string Password);
-public record UpdateUserRequest(string Username);
