@@ -8,6 +8,9 @@ using TodoApp.Infrastructure.Repositories;
 // Digunakan untuk konfigurasi service, middleware, dan aplikasi ASP.NET Core.
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
+
 // Mendaftarkan AppDbContext ke Dependency Injection (DI).
 // UseNpgsql digunakan sebagai provider PostgreSQL.
 // Connection string diambil dari appsettings.json.
@@ -30,6 +33,12 @@ builder.Services.AddScoped<UserService>();
 
 // Membuat aplikasi berdasarkan seluruh konfigurasi yang telah didaftarkan.
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseSwagger();
+    app.UseSwaggerUI();
+}
 
 app.MapGet("/todos", async (TodoService service) =>
 {
