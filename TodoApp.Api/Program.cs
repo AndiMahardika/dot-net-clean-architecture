@@ -67,7 +67,7 @@ app.MapPost("/todos", async (
         request.Title.Trim(),
         request.Description.Trim(),
         request.IsCompleted,
-        request.UserId
+        request.UserId!.Value
     );
 
     return Results.Created($"/todos/{todo.Id}", todo);
@@ -101,7 +101,7 @@ app.MapPut("/todos/{id}", async (
         request.Title.Trim(),
         request.Description.Trim(),
         request.IsCompleted,
-        request.UserId
+        request.UserId!.Value
     );
 
     return Results.Ok();
