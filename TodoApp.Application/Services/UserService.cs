@@ -6,10 +6,12 @@ namespace TodoApp.Application.Services;
 public class UserService
 {
     private readonly IUserRepository _userRepository;
+    private readonly IPasswordHasher _passwordHasher;
 
-    public UserService(IUserRepository userRepository)
+    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
     {
         _userRepository = userRepository;
+        _passwordHasher = passwordHasher;
     }
 
     public async Task<List<User>> GetAllAsync() => await _userRepository.GetAllAsync();
@@ -20,11 +22,13 @@ public class UserService
 
     public async Task<User?> CreateAsync(string username, string email, string password)
     {
+        string passwordHash = _passwordHasher.Hash(password);
+
         var user = new User
         {
             Username = username,
             Email = email,
-            Password = password
+            Password = passwordHash
         };
 
         await _userRepository.CreateAsync(user);

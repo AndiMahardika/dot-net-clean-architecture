@@ -25,6 +25,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 // Saat ITodoRepository diminta, ASP.NET Core akan membuat TodoRepository.
 builder.Services.AddScoped<ITodoRepository, TodoRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
 
 // Mendaftarkan IUnitOfWork.
 // Saat IUnitOfWork diminta, ASP.NET Core akan membuat UnitOfWork.
