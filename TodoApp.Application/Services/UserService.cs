@@ -1,3 +1,4 @@
+using TodoApp.Application.DTOs;
 using TodoApp.Application.Interfaces;
 using TodoApp.Domain.Entities;
 
@@ -52,5 +53,18 @@ public class UserService
             ?? throw new Exception("User not found");
 
         await _userRepository.DeleteAsync(user.Id);
+    }
+
+    public async Task<User?> LoginAsync(LoginRequest request)
+    {
+        var user = await _userRepository.GetByEmailAsync(request.Email.Trim()) ?? throw new Exception("User not found");
+
+        bool isValidPassword = _passwordHasher.Verify(user.Password, request.Password);
+        if (!isValidPassword)
+        {
+            throw new Exception("Invalid password");
+        }
+
+        return user;
     }
 }

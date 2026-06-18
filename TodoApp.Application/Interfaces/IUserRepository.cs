@@ -22,4 +22,7 @@ public interface IUserRepository
 
     // Menghapus data User berdasarkan Id
     Task DeleteAsync(int id);
+
+    // Mengambil data berdasarkan email
+    Task<User?> GetByEmailAsync(string email);
 }

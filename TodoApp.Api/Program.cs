@@ -115,6 +115,23 @@ app.MapDelete("/todos/{id}", async (TodoService service, int id) =>
 });
 
 // User Endpoints
+app.MapPost("/login", async (
+    UserService service,
+    IValidator<LoginRequest> validator,
+    LoginRequest request) =>
+{
+    var validationResult = await validator.ValidateAsync(request);
+
+    if (!validationResult.IsValid)
+    {
+        return Results.BadRequest(validationResult.Errors);
+    }
+
+    var user = await service.LoginAsync(request);
+
+    return Results.Ok(user);
+});
+
 app.MapGet("/users", async (UserService service) =>
 {
     return await service.GetAllAsync();
