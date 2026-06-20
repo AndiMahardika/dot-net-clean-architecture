@@ -7,13 +7,44 @@ using FluentValidation;
 using TodoApp.Application.Validators;
 using TodoApp.Application.DTOs;
 using TodoApp.Infrastructure.Security;
-
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
+using System.Text;
 // Membuat instance WebApplicationBuilder.
 // Digunakan untuk konfigurasi service, middleware, dan aplikasi ASP.NET Core.
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+// Konfigurasi Swagger agar mendukung penginputan Bearer Token di antarmukanya
+builder.Services.AddSwaggerGen(c =>
+{
+    // Menambahkan definisi keamanan "Bearer" ke Swagger
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "Masukkan token JWT dengan format: Bearer {token}",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
+    });
+
+    // Memberitahu Swagger bahwa antarmukanya harus mengirimkan token yang diinputkan
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
+    });
+});
 
 // Mendaftarkan AppDbContext ke Dependency Injection (DI).
 // UseNpgsql digunakan sebagai provider PostgreSQL.
@@ -40,6 +71,26 @@ builder.Services.AddScoped<UserService>();
 // Mendaftarkan seluruh validator dari assembly TodoApp.Application
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoRequestValidator>();
 
+// Mendaftarkan layanan Authentication menggunakan skema JWT Bearer
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        // Konfigurasi aturan untuk memvalidasi token yang masuk dari request
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]!))
+        };
+    });
+
+// Mendaftarkan layanan Authorization (untuk mengatur izin akses)
+builder.Services.AddAuthorization();
+
 // Membuat aplikasi berdasarkan seluruh konfigurasi yang telah didaftarkan.
 var app = builder.Build();
 
@@ -49,10 +100,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+// Middleware: Mengekstrak token dari header HTTP dan mengidentifikasi User
+app.UseAuthentication();
+
+// Middleware: Menentukan apakah User tersebut memiliki izin untuk mengakses rute yang dituju
+app.UseAuthorization();
+
 app.MapGet("/todos", async (TodoService service) =>
 {
     return await service.GetAllAsync();
-});
+}).RequireAuthorization();
 
 app.MapPost("/todos", async (
     TodoService service,
@@ -74,7 +131,7 @@ app.MapPost("/todos", async (
     );
 
     return Results.Created($"/todos/{todo.Id}", todo);
-});
+}).RequireAuthorization();
 
 app.MapGet("/todos/{id}", async (TodoService service, int id) =>
 {
@@ -84,7 +141,7 @@ app.MapGet("/todos/{id}", async (TodoService service, int id) =>
         return Results.NotFound();
     }
     return Results.Ok(todo);
-});
+}).RequireAuthorization();
 
 app.MapPut("/todos/{id}", async (
     TodoService service,
@@ -108,13 +165,13 @@ app.MapPut("/todos/{id}", async (
     );
 
     return Results.Ok();
-});
+}).RequireAuthorization();
 
 app.MapDelete("/todos/{id}", async (TodoService service, int id) =>
 {
     await service.DeleteAsync(id);
     return Results.Ok();
-});
+}).RequireAuthorization();
 
 // User Endpoints
 app.MapPost("/login", async (
