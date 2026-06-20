@@ -6,6 +6,7 @@ using TodoApp.Infrastructure.Repositories;
 using FluentValidation;
 using TodoApp.Application.Validators;
 using TodoApp.Application.DTOs;
+using TodoApp.Infrastructure.Security;
 
 // Membuat instance WebApplicationBuilder.
 // Digunakan untuk konfigurasi service, middleware, dan aplikasi ASP.NET Core.
@@ -26,6 +27,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddScoped<ITodoRepository, TodoRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
 builder.Services.AddScoped<IPasswordHasher, BcryptPasswordHasher>();
+builder.Services.AddScoped<ITokenProvider, JwtTokenProvider>();
 
 // Mendaftarkan IUnitOfWork.
 // Saat IUnitOfWork diminta, ASP.NET Core akan membuat UnitOfWork.
@@ -127,9 +129,11 @@ app.MapPost("/login", async (
         return Results.BadRequest(validationResult.Errors);
     }
 
-    var user = await service.LoginAsync(request);
+    var result = await service.LoginAsync(request);
 
-    return Results.Ok(user);
+    var userResponse = new UserResponse(result.User.Id, result.User.Username, result.User.Email);
+
+    return Results.Ok(new { user = userResponse, token = result.Token });
 });
 
 app.MapGet("/users", async (UserService service) =>

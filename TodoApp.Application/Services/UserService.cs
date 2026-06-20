@@ -8,11 +8,13 @@ public class UserService
 {
     private readonly IUserRepository _userRepository;
     private readonly IPasswordHasher _passwordHasher;
+    private readonly ITokenProvider _tokenProvider;
 
-    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher)
+    public UserService(IUserRepository userRepository, IPasswordHasher passwordHasher, ITokenProvider tokenProvider)
     {
         _userRepository = userRepository;
         _passwordHasher = passwordHasher;
+        _tokenProvider = tokenProvider;
     }
 
     public async Task<List<User>> GetAllAsync() => await _userRepository.GetAllAsync();
@@ -55,7 +57,7 @@ public class UserService
         await _userRepository.DeleteAsync(user.Id);
     }
 
-    public async Task<User?> LoginAsync(LoginRequest request)
+    public async Task<(User User, string Token)> LoginAsync(LoginRequest request)
     {
         var user = await _userRepository.GetByEmailAsync(request.Email.Trim()) ?? throw new Exception("User not found");
 
@@ -65,6 +67,8 @@ public class UserService
             throw new Exception("Invalid password");
         }
 
-        return user;
+        var token = _tokenProvider.GenerateToken(user);
+
+        return (user, token);
     }
 }
