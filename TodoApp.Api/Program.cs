@@ -11,6 +11,10 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
+using MediatR;
+using TodoApp.Application.Commands;
+using TodoApp.Application.Queries;
+
 // Membuat instance WebApplicationBuilder.
 // Digunakan untuk konfigurasi service, middleware, dan aplikasi ASP.NET Core.
 var builder = WebApplication.CreateBuilder(args);
@@ -65,11 +69,16 @@ builder.Services.AddScoped<ITokenProvider, JwtTokenProvider>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 
 // Mendaftarkan TodoService ke Dependency Injection.
-builder.Services.AddScoped<TodoService>();
 builder.Services.AddScoped<UserService>();
 
 // Mendaftarkan seluruh validator dari assembly TodoApp.Application
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoRequestValidator>();
+// Mendaftarkan MediatR dan memberitahu agar mencari semua Handler di dalam TodoApp.Application
+builder.Services.AddMediatR(config =>
+{
+    config.RegisterServicesFromAssembly(typeof(TodoApp.Application.Commands.CreateTodoCommand).Assembly);
+});
+
 
 // Mendaftarkan layanan Authentication menggunakan skema JWT Bearer
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
@@ -106,13 +115,13 @@ app.UseAuthentication();
 // Middleware: Menentukan apakah User tersebut memiliki izin untuk mengakses rute yang dituju
 app.UseAuthorization();
 
-app.MapGet("/todos", async (TodoService service) =>
+app.MapGet("/todos", async (IMediator mediator) =>
 {
-    return await service.GetAllAsync();
+    return await mediator.Send(new GetTodosQuery());
 }).RequireAuthorization();
 
 app.MapPost("/todos", async (
-    TodoService service,
+    IMediator mediator,
     IValidator<CreateTodoRequest> validator,
     CreateTodoRequest request) =>
 {
@@ -123,19 +132,19 @@ app.MapPost("/todos", async (
         return Results.BadRequest(validationResult.Errors);
     }
 
-    var todo = await service.CreateAsync(
+    var todo = await mediator.Send(new CreateTodoCommand(
         request.Title.Trim(),
         request.Description.Trim(),
         request.IsCompleted,
         request.UserId!.Value
-    );
+    ));
 
     return Results.Created($"/todos/{todo.Id}", todo);
 }).RequireAuthorization();
 
-app.MapGet("/todos/{id}", async (TodoService service, int id) =>
+app.MapGet("/todos/{id}", async (IMediator mediator, int id) =>
 {
-    var todo = await service.GetByIdAsync(id);
+    var todo = await mediator.Send(new GetTodoByIdQuery(id));
     if (todo == null)
     {
         return Results.NotFound();
@@ -144,7 +153,7 @@ app.MapGet("/todos/{id}", async (TodoService service, int id) =>
 }).RequireAuthorization();
 
 app.MapPut("/todos/{id}", async (
-    TodoService service,
+    IMediator mediator,
     int id,
     IValidator<UpdateTodoRequest> validator,
     UpdateTodoRequest request) =>
@@ -156,20 +165,20 @@ app.MapPut("/todos/{id}", async (
         return Results.BadRequest(validationResult.Errors);
     }
 
-    await service.UpdateAsync(
+    await mediator.Send(new UpdateTodoCommand(
         id,
         request.Title.Trim(),
         request.Description.Trim(),
         request.IsCompleted,
         request.UserId!.Value
-    );
+    ));
 
     return Results.Ok();
 }).RequireAuthorization();
 
-app.MapDelete("/todos/{id}", async (TodoService service, int id) =>
+app.MapDelete("/todos/{id}", async (IMediator mediator, int id) =>
 {
-    await service.DeleteAsync(id);
+    await mediator.Send(new DeleteTodoCommand(id));
     return Results.Ok();
 }).RequireAuthorization();
 
