@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using TodoApp.Application.Interfaces;
-using TodoApp.Application.Services;
 using TodoApp.Infrastructure.Persistence;
 using TodoApp.Infrastructure.Repositories;
 using FluentValidation;
@@ -14,6 +13,8 @@ using System.Text;
 using MediatR;
 using TodoApp.Application.Commands;
 using TodoApp.Application.Queries;
+using TodoApp.Application.Commands.Users;
+using TodoApp.Application.Queries.Users;
 
 // Membuat instance WebApplicationBuilder.
 // Digunakan untuk konfigurasi service, middleware, dan aplikasi ASP.NET Core.
@@ -67,9 +68,6 @@ builder.Services.AddScoped<ITokenProvider, JwtTokenProvider>();
 // Mendaftarkan IUnitOfWork.
 // Saat IUnitOfWork diminta, ASP.NET Core akan membuat UnitOfWork.
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
-
-// Mendaftarkan TodoService ke Dependency Injection.
-builder.Services.AddScoped<UserService>();
 
 // Mendaftarkan seluruh validator dari assembly TodoApp.Application
 builder.Services.AddValidatorsFromAssemblyContaining<CreateTodoRequestValidator>();
@@ -184,7 +182,7 @@ app.MapDelete("/todos/{id}", async (IMediator mediator, int id) =>
 
 // User Endpoints
 app.MapPost("/login", async (
-    UserService service,
+    IMediator mediator,
     IValidator<LoginRequest> validator,
     LoginRequest request) =>
 {
@@ -195,20 +193,20 @@ app.MapPost("/login", async (
         return Results.BadRequest(validationResult.Errors);
     }
 
-    var result = await service.LoginAsync(request);
+    var result = await mediator.Send(new LoginCommand(request.Email, request.Password));
 
     var userResponse = new UserResponse(result.User.Id, result.User.Username, result.User.Email);
 
     return Results.Ok(new { user = userResponse, token = result.Token });
 });
 
-app.MapGet("/users", async (UserService service) =>
+app.MapGet("/users", async (IMediator mediator) =>
 {
-    return await service.GetAllAsync();
+    return await mediator.Send(new GetUsersQuery());
 });
 
 app.MapPost("/users", async (
-    UserService service,
+    IMediator mediator,
     IValidator<CreateUserRequest> validator,
     CreateUserRequest request) =>
 {
@@ -219,14 +217,14 @@ app.MapPost("/users", async (
         return Results.BadRequest(validationResult.Errors);
     }
 
-    var user = await service.CreateAsync(request.Username.Trim(), request.Email.Trim(), request.Password.Trim());
+    var user = await mediator.Send(new CreateUserCommand(request.Username.Trim(), request.Email.Trim(), request.Password.Trim()));
 
     return Results.Created($"/users/{user?.Id}", user);
 });
 
-app.MapGet("/users/{id}", async (UserService service, int id) =>
+app.MapGet("/users/{id}", async (IMediator mediator, int id) =>
 {
-    var user = await service.GetByIdAsync(id);
+    var user = await mediator.Send(new GetUserByIdQuery(id));
     if (user == null)
     {
         return Results.NotFound();
@@ -234,9 +232,9 @@ app.MapGet("/users/{id}", async (UserService service, int id) =>
     return Results.Ok(user);
 });
 
-app.MapGet("/users/username/{username}", async (UserService service, string username) =>
+app.MapGet("/users/username/{username}", async (IMediator mediator, string username) =>
 {
-    var user = await service.GetByUsernameAsync(username);
+    var user = await mediator.Send(new GetUserByUsernameQuery(username));
     if (user == null)
     {
         return Results.NotFound();
@@ -245,7 +243,7 @@ app.MapGet("/users/username/{username}", async (UserService service, string user
 });
 
 app.MapPut("/users/{id}", async (
-    UserService service,
+    IMediator mediator,
     int id,
     IValidator<UpdateUserRequest> validator,
     UpdateUserRequest request) =>
@@ -257,14 +255,14 @@ app.MapPut("/users/{id}", async (
         return Results.BadRequest(validationResult.Errors);
     }
 
-    await service.UpdateAsync(id, request.Username.Trim());
+    await mediator.Send(new UpdateUserCommand(id, request.Username.Trim()));
 
     return Results.Ok();
 });
 
-app.MapDelete("/users/{id}", async (UserService service, int id) =>
+app.MapDelete("/users/{id}", async (IMediator mediator, int id) =>
 {
-    await service.DeleteAsync(id);
+    await mediator.Send(new DeleteUserCommand(id));
     return Results.Ok();
 });
 
