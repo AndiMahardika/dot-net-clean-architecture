@@ -56,4 +56,10 @@ public class TodoRepository : ITodoRepository
             _context.Todos.Remove(todo);
         }
     }
+
+    // Get all todos by id user
+    public async Task<List<Todo>> GetByUserIdAsync(int userId)
+    {
+        return await _context.Todos.Where(t => t.UserId == userId).ToListAsync();
+    }
 }

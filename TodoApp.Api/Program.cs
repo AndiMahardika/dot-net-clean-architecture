@@ -4,17 +4,12 @@ using TodoApp.Infrastructure.Persistence;
 using TodoApp.Infrastructure.Repositories;
 using FluentValidation;
 using TodoApp.Application.Validators;
-using TodoApp.Application.DTOs;
 using TodoApp.Infrastructure.Security;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
-using MediatR;
-using TodoApp.Application.Commands;
-using TodoApp.Application.Queries;
-using TodoApp.Application.Commands.Users;
-using TodoApp.Application.Queries.Users;
+using TodoApp.Api.Endpoints;
 
 // Membuat instance WebApplicationBuilder.
 // Digunakan untuk konfigurasi service, middleware, dan aplikasi ASP.NET Core.
@@ -113,157 +108,7 @@ app.UseAuthentication();
 // Middleware: Menentukan apakah User tersebut memiliki izin untuk mengakses rute yang dituju
 app.UseAuthorization();
 
-app.MapGet("/todos", async (IMediator mediator) =>
-{
-    return await mediator.Send(new GetTodosQuery());
-}).RequireAuthorization();
-
-app.MapPost("/todos", async (
-    IMediator mediator,
-    IValidator<CreateTodoRequest> validator,
-    CreateTodoRequest request) =>
-{
-    var validationResult = await validator.ValidateAsync(request);
-
-    if (!validationResult.IsValid)
-    {
-        return Results.BadRequest(validationResult.Errors);
-    }
-
-    var todo = await mediator.Send(new CreateTodoCommand(
-        request.Title.Trim(),
-        request.Description.Trim(),
-        request.IsCompleted,
-        request.UserId!.Value
-    ));
-
-    return Results.Created($"/todos/{todo.Id}", todo);
-}).RequireAuthorization();
-
-app.MapGet("/todos/{id}", async (IMediator mediator, int id) =>
-{
-    var todo = await mediator.Send(new GetTodoByIdQuery(id));
-    if (todo == null)
-    {
-        return Results.NotFound();
-    }
-    return Results.Ok(todo);
-}).RequireAuthorization();
-
-app.MapPut("/todos/{id}", async (
-    IMediator mediator,
-    int id,
-    IValidator<UpdateTodoRequest> validator,
-    UpdateTodoRequest request) =>
-{
-    var validationResult = await validator.ValidateAsync(request);
-
-    if (!validationResult.IsValid)
-    {
-        return Results.BadRequest(validationResult.Errors);
-    }
-
-    await mediator.Send(new UpdateTodoCommand(
-        id,
-        request.Title.Trim(),
-        request.Description.Trim(),
-        request.IsCompleted,
-        request.UserId!.Value
-    ));
-
-    return Results.Ok();
-}).RequireAuthorization();
-
-app.MapDelete("/todos/{id}", async (IMediator mediator, int id) =>
-{
-    await mediator.Send(new DeleteTodoCommand(id));
-    return Results.Ok();
-}).RequireAuthorization();
-
-// User Endpoints
-app.MapPost("/login", async (
-    IMediator mediator,
-    IValidator<LoginRequest> validator,
-    LoginRequest request) =>
-{
-    var validationResult = await validator.ValidateAsync(request);
-
-    if (!validationResult.IsValid)
-    {
-        return Results.BadRequest(validationResult.Errors);
-    }
-
-    var result = await mediator.Send(new LoginCommand(request.Email, request.Password));
-
-    var userResponse = new UserResponse(result.User.Id, result.User.Username, result.User.Email);
-
-    return Results.Ok(new { user = userResponse, token = result.Token });
-});
-
-app.MapGet("/users", async (IMediator mediator) =>
-{
-    return await mediator.Send(new GetUsersQuery());
-});
-
-app.MapPost("/users", async (
-    IMediator mediator,
-    IValidator<CreateUserRequest> validator,
-    CreateUserRequest request) =>
-{
-    var validationResult = await validator.ValidateAsync(request);
-
-    if (!validationResult.IsValid)
-    {
-        return Results.BadRequest(validationResult.Errors);
-    }
-
-    var user = await mediator.Send(new CreateUserCommand(request.Username.Trim(), request.Email.Trim(), request.Password.Trim()));
-
-    return Results.Created($"/users/{user?.Id}", user);
-});
-
-app.MapGet("/users/{id}", async (IMediator mediator, int id) =>
-{
-    var user = await mediator.Send(new GetUserByIdQuery(id));
-    if (user == null)
-    {
-        return Results.NotFound();
-    }
-    return Results.Ok(user);
-});
-
-app.MapGet("/users/username/{username}", async (IMediator mediator, string username) =>
-{
-    var user = await mediator.Send(new GetUserByUsernameQuery(username));
-    if (user == null)
-    {
-        return Results.NotFound();
-    }
-    return Results.Ok(user);
-});
-
-app.MapPut("/users/{id}", async (
-    IMediator mediator,
-    int id,
-    IValidator<UpdateUserRequest> validator,
-    UpdateUserRequest request) =>
-{
-    var validationResult = await validator.ValidateAsync(request);
-
-    if (!validationResult.IsValid)
-    {
-        return Results.BadRequest(validationResult.Errors);
-    }
-
-    await mediator.Send(new UpdateUserCommand(id, request.Username.Trim()));
-
-    return Results.Ok();
-});
-
-app.MapDelete("/users/{id}", async (IMediator mediator, int id) =>
-{
-    await mediator.Send(new DeleteUserCommand(id));
-    return Results.Ok();
-});
+app.MapTodoEndpoints();
+app.MapUserEndpoints();
 
 app.Run();

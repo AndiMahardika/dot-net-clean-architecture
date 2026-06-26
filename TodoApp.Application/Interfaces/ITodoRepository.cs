@@ -21,6 +21,9 @@ public interface ITodoRepository
 
     // Menghapus Todo berdasarkan Id
     Task DeleteAsync(int id);
+
+    // Get all todos by id user
+    Task<List<Todo>> GetByUserIdAsync(int userId);
 }
 
 // Unit of Work digunakan untuk mengelompokkan repository

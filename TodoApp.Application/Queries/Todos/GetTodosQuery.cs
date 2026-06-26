@@ -6,7 +6,7 @@ namespace TodoApp.Application.Queries;
 
 // Query untuk mengambil semua Todo
 // IRequest<List<Todo>> berarti query ini akan mengembalikan list of Todo
-public record GetTodosQuery : IRequest<List<Todo>>;
+public record GetTodosQuery(int UserId) : IRequest<List<Todo>>;
 
 // Handler untuk mengambil semua Todo
 public class GetTodosQueryHandler : IRequestHandler<GetTodosQuery, List<Todo>>
@@ -20,6 +20,6 @@ public class GetTodosQueryHandler : IRequestHandler<GetTodosQuery, List<Todo>>
 
     public async Task<List<Todo>> Handle(GetTodosQuery request, CancellationToken cancellationToken)
     {
-        return await _unitOfWork.Todos.GetAllAsync();
+        return await _unitOfWork.Todos.GetByUserIdAsync(request.UserId);
     }
 }
